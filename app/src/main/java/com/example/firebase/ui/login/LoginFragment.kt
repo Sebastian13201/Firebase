@@ -30,7 +30,7 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
-class LoginFragment(private var signInRequest: BeginSignInRequest) : Fragment() {
+class LoginFragment : Fragment() {
 
     private val RC_SIGN_IN: Int = 1231
     private lateinit var loginViewModel: LoginViewModel
@@ -138,7 +138,8 @@ class LoginFragment(private var signInRequest: BeginSignInRequest) : Fragment() 
     }
 
     private fun setupGoogleAuth() {
-        googleSignInClient = GoogleSignIn.getClient(requireContext(), GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+        googleSignInClient = GoogleSignIn.getClient(
+            requireContext(), GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.your_web_client_id))
             .requestEmail()
             .build()
@@ -195,7 +196,7 @@ class LoginFragment(private var signInRequest: BeginSignInRequest) : Fragment() 
 
     private fun firebaseAuthWithGoogle(idToken: String) {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
-            auth.signInWithCredential(credential).addOnCompleteListener { task ->
+        auth.signInWithCredential(credential).addOnCompleteListener { task->
                 if (task.isSuccessful){
                    val user = auth.currentUser
                     Log.d("User", user?.email.toString())
