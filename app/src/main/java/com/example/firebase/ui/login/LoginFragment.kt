@@ -18,13 +18,13 @@ import android.widget.Toast
 import androidx.navigation.fragment.findNavController
 import com.example.firebase.databinding.FragmentLoginBinding
 import com.example.firebase.R
-import com.example.firebase.databinding.FragmentRegisterBinding
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
@@ -37,6 +37,7 @@ class LoginFragment : Fragment() {
     private val REQ_ONE_TAP = 2  // Can be any integer unique to the Activity
     private var showOneTapUI = true
     private lateinit var googleSignInClient: GoogleSignInClient
+
 
     // This property is only valid between onCreateView and
     // onDestroyView.
@@ -174,6 +175,25 @@ class LoginFragment : Fragment() {
             val signInIntent = googleSignInClient.signInIntent
             startActivityForResult(signInIntent, RC_SIGN_IN)
         }
+
+        binding.btnGit.setOnClickListener {
+            val provider = OAuthProvider.newBuilder("github.com")
+            provider.addCustomParameter("login", "") // Optional: pre-fill the username/email if available
+            provider.scopes = listOf("user:email") // Optional: request additional GitHub permissions
+
+            // Start the sign-in process
+            auth.startActivityForSignInWithProvider(requireActivity(), provider.build())
+                .addOnSuccessListener { authResult ->
+                    // Handle successful sign-in
+                    val user = authResult.user
+                    Toast.makeText(context, "Welcome, ${user?.displayName}", Toast.LENGTH_SHORT).show()
+                    navigateToHome()
+                }
+                .addOnFailureListener { e ->
+                    // Handle failure
+                    Toast.makeText(context, "GitHub Sign-In Failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                }
+        }
     }
 
     private fun verifyFirebaseUser(email: String, password: String) {
@@ -201,6 +221,7 @@ class LoginFragment : Fragment() {
             .build()
         )
     }
+
 
     private fun updateUiWithUser(model: LoggedInUserView) {
         val welcome = getString(R.string.welcome) + model.displayName
@@ -243,6 +264,7 @@ class LoginFragment : Fragment() {
                 if (task.isSuccessful){
                    val user = auth.currentUser
                     Log.d("User", user?.email.toString())
+                    navigateToHome()
                 }else Log.d("user", task.exception?.message.toString())
             }
     }
