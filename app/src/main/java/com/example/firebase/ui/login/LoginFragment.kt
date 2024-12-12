@@ -15,17 +15,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
+import androidx.navigation.fragment.findNavController
 import com.example.firebase.databinding.FragmentLoginBinding
-
 import com.example.firebase.R
-import com.google.android.gms.auth.api.identity.BeginSignInRequest
-import com.google.android.gms.auth.api.identity.SignInClient
+import com.example.firebase.databinding.FragmentRegisterBinding
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.GoogleAuthCredential
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
@@ -61,6 +59,12 @@ class LoginFragment : Fragment() {
             .get(LoginViewModel::class.java)
         auth = Firebase.auth
 
+        if (auth.currentUser != null){
+            navigateToHome()
+            return
+        }
+
+        setupLoginListeners()
         setupGoogleAuth()
         val usernameEditText = binding.username
         val passwordEditText = binding.password
@@ -128,13 +132,65 @@ class LoginFragment : Fragment() {
 //                passwordEditText.text.toString()
 //            )
 
-            verifyFireBaseUser(usernameEditText.text.toString(), passwordEditText.text.toString())
+            verifyFirebaseUser(usernameEditText.text.toString(), passwordEditText.text.toString())
+        }
+
+        binding.btnRegister.setOnClickListener {
+            findNavController().navigate(R.id.navigation_register)
         }
 
         binding.btnGoogle.setOnClickListener {
             val signIn = googleSignInClient.signInIntent
             startActivityForResult( signIn, RC_SIGN_IN)
         }
+    }
+
+    private fun setupLoginListeners() {
+        val usernameEditText = binding.username
+        val passwordEditText = binding.password
+        val loginButton = binding.login
+        val loadingProgressBar = binding.loading
+
+        loginViewModel.loginFormState.observe(viewLifecycleOwner, { loginFormState ->
+            if (loginFormState == null) return@observe
+            loginButton.isEnabled = loginFormState.isDataValid
+            loginFormState.usernameError?.let {
+                usernameEditText.error = getString(it)
+            }
+            loginFormState.passwordError?.let {
+                passwordEditText.error = getString(it)
+            }
+        })
+
+        loginButton.setOnClickListener {
+            val email = usernameEditText.text.toString()
+            val password = passwordEditText.text.toString()
+
+            loadingProgressBar.visibility = View.VISIBLE
+            verifyFirebaseUser(email, password)
+        }
+
+        binding.btnGoogle.setOnClickListener {
+            val signInIntent = googleSignInClient.signInIntent
+            startActivityForResult(signInIntent, RC_SIGN_IN)
+        }
+    }
+
+    private fun verifyFirebaseUser(email: String, password: String) {
+        auth.signInWithEmailAndPassword(email, password).addOnCompleteListener { task ->
+            binding.loading.visibility = View.GONE
+            if (task.isSuccessful) {
+                val user = auth.currentUser
+                Toast.makeText(context, "Welcome ${user?.email}", Toast.LENGTH_LONG).show()
+                navigateToHome()
+            } else {
+                Toast.makeText(context, "Authentication failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun navigateToHome() {
+        findNavController().navigate(R.id.navigation_home)
     }
 
     private fun setupGoogleAuth() {
@@ -144,19 +200,6 @@ class LoginFragment : Fragment() {
             .requestEmail()
             .build()
         )
-    }
-
-    private fun verifyFireBaseUser(email: String, password: String){
-        auth.signInWithEmailAndPassword(email, password).addOnCompleteListener { task ->
-            if (task.isSuccessful){
-                val user = auth.currentUser
-                Toast.makeText(context,"Welcome${user?.email}", Toast.LENGTH_LONG).show()
-            }else{
-                val user = auth.currentUser
-                Toast.makeText(context,"You are not welcome ${task.exception?.message}", Toast.LENGTH_LONG).show()
-            }
-        }
-
     }
 
     private fun updateUiWithUser(model: LoggedInUserView) {
@@ -203,4 +246,6 @@ class LoginFragment : Fragment() {
                 }else Log.d("user", task.exception?.message.toString())
             }
     }
+
+
 }
